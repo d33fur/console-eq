@@ -1,0 +1,2 @@
+# console-eq
+eq
