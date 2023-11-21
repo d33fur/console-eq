@@ -1,34 +1,27 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(eq)
+project(eq LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_EXE_LINKER_FLAGS "-static")
 
 find_package(Curses REQUIRED)
-include_directories(${CURSES_INCLUDE_DIR})
 
-add_subdirectory(JUCE)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PC_PULSEAUDIO libpulse)
+find_path(PULSEAUDIO_INCLUDE_DIR pulse/pulseaudio.h HINTS ${PC_PULSEAUDIO_INCLUDEDIR} ${PC_PULSEAUDIO_INCLUDE_DIRS})
+find_library(PULSEAUDIO_LIBRARY NAMES pulse HINTS ${PC_PULSEAUDIO_LIBDIR} ${PC_PULSEAUDIO_LIBRARY_DIRS})
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PulseAudio DEFAULT_MSG PULSEAUDIO_LIBRARY PULSEAUDIO_INCLUDE_DIR)
+mark_as_advanced(PULSEAUDIO_INCLUDE_DIR PULSEAUDIO_LIBRARY)
+set(PULSEAUDIO_INCLUDE_DIRS ${PULSEAUDIO_INCLUDE_DIR})
+set(PULSEAUDIO_LIBRARIES ${PULSEAUDIO_LIBRARY})
 
-set(SOURCE_FILES main.cpp process.h process.cpp)
+link_directories(${NCURSES_LIBRARY_DIRS} ${PULSEAUDIO_LIBRARY_DIRS})
+include_directories(${NCURSES_INCLUDE_DIRS} ${PULSEAUDIO_INCLUDE_DIRS})
 
-add_executable(eq ${SOURCE_FILES})
+set(SOURCE_FILES main.cpp)
 
-#target_compile_definitions(eq
-#        JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_gui_app` call
-#        JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_gui_app` call
-#        JUCE_APPLICATION_NAME_STRING="eq"
-#        JUCE_APPLICATION_VERSION_STRING="1.0")
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
-target_link_libraries(eq 
-        ${CURSES_LIBRARIES}
-        juce::juce_core
-        juce::juce_data_structures
-        juce::juce_events
-        juce::juce_audio_utils
-        juce::juce_audio_processors
-        juce::juce_dsp
-        juce::juce_recommended_config_flags
-        juce::juce_recommended_lto_flags
-        juce::juce_recommended_warning_flags)
-#install()
+target_include_directories(${PROJECT_NAME} PRIVATE ${PULSEAUDIO_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${NCURSES_LIBRARIES} ${PULSEAUDIO_LIBRARIES} pulse-simple)
